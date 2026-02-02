@@ -92,7 +92,7 @@ def train_backbone(
         # reconstruction loss
         y_recon = decoder(
             x=einops.rearrange(posterior_samples[1:], "l b x -> (l b) x"),
-            h=torch.cat(rnn_hiddens, dim=0),
+            h=torch.cat(rnn_hiddens[1:], dim=0),
         )
         y_true = einops.rearrange(y[1:], "l b y -> (l b) y")
         reconstruction_loss = nn.MSELoss()(y_recon, y_true)
@@ -148,7 +148,7 @@ def train_backbone(
                 # reconstruction loss
                 y_recon = decoder(
                     x=einops.rearrange(posterior_samples[1:], "l b x -> (l b) x"),
-                    h=torch.cat(rnn_hiddens, dim=0)
+                    h=torch.cat(rnn_hiddens[1:], dim=0)
                 )
                 y_true = einops.rearrange(y[1:], "l b y -> (l b) y")
                 reconstruction_loss = nn.MSELoss()(y_recon, y_true)
