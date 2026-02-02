@@ -75,8 +75,9 @@ def train_backbone(
 
         # convert to tensor, transform to device, reshape to time-first
         y = torch.as_tensor(y, device=device)
-        a = encoder(einops.rearrange(y, "b l y -> (b l) y"))
-        a = einops.rearrange(a, "(b l) a -> l b a", b=config.batch_size)
+        y = einops.rearrange(y, "b l y -> l b y")
+        a = encoder(einops.rearrange(y, "l b y -> (l b) y"))
+        a = einops.rearrange(a, "(l b) a -> l b a", b=config.batch_size)
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
 
@@ -126,8 +127,9 @@ def train_backbone(
 
                 # convert to tensor, transform to device, reshape to time-first
                 y = torch.as_tensor(y, device=device)
-                a = encoder(einops.rearrange(y, "b l y -> (b l) y"))
-                a = einops.rearrange(a, "(b l) a -> l b a", b=config.batch_size)
+                y = einops.rearrange(y, "b l y -> l b y")
+                a = encoder(einops.rearrange(y, "l b y -> (l b) y"))
+                a = einops.rearrange(a, "(l b) a -> l b a", b=config.batch_size)
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
 
@@ -202,8 +204,9 @@ def train_cost(
 
         # convert to tensor, transform to device, reshape to time-first
         y = torch.as_tensor(y, device=device)
-        a = encoder(einops.rearrange(y, "b l y -> (b l) y"))
-        a = einops.rearrange(a, "(b l) a -> l b a", b=config.batch_size)
+        y = einops.rearrange(y, "b l y -> l b y")
+        a = encoder(einops.rearrange(y, "l b y -> (l b) y"))
+        a = einops.rearrange(a, "(l b) a -> l b a", b=config.batch_size)
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
         c = torch.as_tensor(c, device=device)
@@ -242,8 +245,9 @@ def train_cost(
 
                 # convert to tensor, transform to device, reshape to time-first
                 y = torch.as_tensor(y, device=device)
-                a = encoder(einops.rearrange(y, "b l y -> (b l) y"))
-                a = einops.rearrange(a, "(b l) a -> l b a", b=config.batch_size)
+                y = einops.rearrange(y, "b l y -> l b y")
+                a = encoder(einops.rearrange(y, "l b y -> (l b) y"))
+                a = einops.rearrange(a, "(l b) a -> l b a", b=config.batch_size)
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
                 c = torch.as_tensor(c, device=device)
