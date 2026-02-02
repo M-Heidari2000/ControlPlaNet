@@ -45,7 +45,7 @@ class CEMAgent:
         """
 
         y = torch.as_tensor(y, device=self.device).unsqueeze(0)
-        a = Encoder(y)
+        a = self.encoder(y)
         u = torch.as_tensor(u, device=self.device).unsqueeze(0)
 
         # no learning takes place here
