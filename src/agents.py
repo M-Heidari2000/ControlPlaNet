@@ -77,7 +77,7 @@ class CEMAgent:
             prior_samples, rnn_hiddens = self.rssm.generate(
                 x=x,
                 u=action_candidates,
-                h=self.rnn_hidden.expand([self.num_candidates, -1, -1])
+                h=self.rnn_hidden.expand([self.num_candidates, -1])
             )
             total_predicted_cost = torch.zeros(self.num_candidates, device=self.device)
             for t in range(self.planning_horizon):
