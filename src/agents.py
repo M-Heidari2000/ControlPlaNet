@@ -35,7 +35,7 @@ class CEMAgent:
 
         # Initialize rnn_hidden with zeros
         self.rnn_hidden = torch.zeros((1, self.rssm.rnn_hidden_dim), device=self.device)
-        self.posterior_mean = torch.zeros((1, self.rssm.rnn_hidden_dim), device=self.device)
+        self.posterior_mean = torch.zeros((1, self.rssm.x_dim), device=self.device)
 
     def __call__(self, y, u, explore: bool=False):
         """
@@ -92,8 +92,8 @@ class CEMAgent:
 
     def reset(self):
         # Initialize rnn_hidden with zeros
-        self.rnn_hidden = torch.zeros((1, self.encoder.rnn_hidden_dim), device=self.device)
-        self.posterior_mean = torch.zeros((1, self.rssm.rnn_hidden_dim), device=self.device)
+        self.rnn_hidden = torch.zeros((1, self.rssm.rnn_hidden_dim), device=self.device)
+        self.posterior_mean = torch.zeros((1, self.rssm.x_dim), device=self.device)
 
 class OracleMPC:
     """
