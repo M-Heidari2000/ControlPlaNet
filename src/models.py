@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.init as init
 from typing import Optional
 from torch.distributions import MultivariateNormal
 
@@ -167,7 +166,6 @@ class RSSM(nn.Module):
     
     def forward(
         self,
-        h: torch.Tensor,
         u: torch.Tensor,
         a: torch.Tensor,
     ):
@@ -175,31 +173,30 @@ class RSSM(nn.Module):
             multi step inference of priors and posteriors
 
             inputs:
-                - h: intial rnn hidden
-                - a: a0:T
+                - a: a0:T-1
                 - u: u0:T-1
             outputs:
                 priors: one step priors over the states
                 posteriors: posterior over the states
+
+            Notes: u[T-1] is not used
         """
 
         T, B, _ = u.shape
         device = u.device
 
-        posterior = MultivariateNormal(
-            loc=torch.zeros((B, self.x_dim), device=device),
-            covariance_matrix=torch.eye(self.x_dim, device=device).repeat([B, 1, 1]),
-        )
+        h = torch.zeros((B, self.rnn_hidden_dim), device=device)
         prior = MultivariateNormal(
             loc=torch.zeros((B, self.x_dim), device=device),
             covariance_matrix=torch.eye(self.x_dim, device=device).repeat([B, 1, 1]),
         )
-        rnn_hiddens = [h]
+        posterior = self.posterior(h=h, a=a[0]) # posterior over x0
 
+        rnn_hiddens = [h]
         posteriors = [posterior]
         priors = [prior]
 
-        for t in range(T):
+        for t in range(T-1):
             h, prior = self.prior(h=h, x=posterior.rsample(), u=u[t])
             posterior = self.posterior(h=h, a=a[t+1])
             rnn_hiddens.append(h)
@@ -214,14 +211,16 @@ class CostModel(nn.Module):
     def __init__(
         self,
         x_dim: int,
-        u_dim: int,
         rnn_hidden_dim: int,
         hidden_dim: Optional[int]=64,
     ):
+        """
+            [h_t, x_t] -> c_t
+        """
+
         super().__init__()
 
         self.x_dim = x_dim
-        self.u_dim = u_dim
         self.rnn_hidden_dim = rnn_hidden_dim
 
         self.mlp_layers = nn.Sequential(

@@ -2,6 +2,7 @@ import torch
 import einops
 import numpy as np
 from mpc import mpc
+from typing import Optional
 from mpc.mpc import QuadCost, LinDx
 from torch.distributions import MultivariateNormal
 from .models import Encoder, RSSM, CostModel
@@ -37,20 +38,21 @@ class CEMAgent:
         self.rnn_hidden = torch.zeros((1, self.rssm.rnn_hidden_dim), device=self.device)
         self.posterior_mean = torch.zeros((1, self.rssm.x_dim), device=self.device)
 
-    def __call__(self, y, u, explore: bool=False):
+    def __call__(self, y: torch.Tensor, u: Optional[torch.Tensor], explore: bool=False):
         """
         inputs: y_t, u_{t-1}
             outputs: planned u_t
             explore: add random values to planned actions for exploration purpose
+
+        notes: if u_{t-1} is Nonem then that's the first observation
         """
 
-        y = torch.as_tensor(y, device=self.device).unsqueeze(0)
-        a = self.encoder(y)
-        u = torch.as_tensor(u, device=self.device).unsqueeze(0)
-
-        # no learning takes place here
-        with torch.no_grad():
-            self.rnn_hidden, _ = self.rssm.prior(h=self.rnn_hidden, x=self.posterior_mean, u=u)
+        with torch.no_grad():    
+            y = torch.as_tensor(y, device=self.device).unsqueeze(0)
+            a = self.encoder(y)
+            if u is not None:
+                u = torch.as_tensor(u, device=self.device).unsqueeze(0)
+                self.rnn_hidden, _ = self.rssm.prior(h=self.rnn_hidden, x=self.posterior_mean, u=u)
             posterior = self.rssm.posterior(h=self.rnn_hidden, a=a)
             self.posterior_mean = posterior.loc
             planned_u = self._plan(x=self.posterior_mean)
@@ -69,16 +71,13 @@ class CEMAgent:
             covariance_matrix=torch.eye(self.rssm.u_dim, device=self.device).expand([self.planning_horizon, -1, -1])
         )
         x = x.expand([self.num_candidates, -1])
-        
+        h = self.rnn_hidden.expand([self.num_candidates, -1])
+
         for _ in range(self.num_iterations):
             action_candidates = action_dist.sample([self.num_candidates])
             action_candidates = einops.rearrange(action_candidates, "n h u -> h n u")
             action_candidates = action_candidates.clamp(min=-1.0, max=1.0)
-            prior_samples, rnn_hiddens = self.rssm.generate(
-                x=x,
-                u=action_candidates,
-                h=self.rnn_hidden.expand([self.num_candidates, -1])
-            )
+            prior_samples, rnn_hiddens = self.rssm.generate(x=x, u=action_candidates, h=h)
             total_predicted_cost = torch.zeros(self.num_candidates, device=self.device)
             for t in range(self.planning_horizon):
                 total_predicted_cost += self.cost_model(x=prior_samples[t], h=rnn_hiddens[t]).squeeze()

@@ -41,7 +41,7 @@ def trial(
     # control with the learned model
     obs, _ = env.reset(options=options)
     agent.reset()
-    action = np.zeros(env.action_space.shape, dtype=np.float32)
+    action = None
     done = False
     total_cost = 0.0
     while not done:

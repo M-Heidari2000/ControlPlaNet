@@ -77,32 +77,22 @@ def train_backbone(
         # convert to tensor, transform to device, reshape to time-first
         y = torch.as_tensor(y, device=device)
         a = encoder(y)
-        a = torch.cat((
-            torch.zeros((1, config.batch_size, config.a_dim), device=device),
-            einops.rearrange(a, "b l a -> l b a")
-        ), dim=0)
-        y = torch.cat((
-            torch.zeros((1, config.batch_size, train_buffer.y_dim), device=device),
-            einops.rearrange(y, "b l y -> l b y")
-        ), dim=0)
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
 
-        # Initial RNN hidden
-        rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-        priors, posteriors, rnn_hiddens = rssm(h=rnn_hidden, a=a, u=u)
-        # x0:T
+        priors, posteriors, rnn_hiddens = rssm(a=a, u=u)
+        # x0:T-1
         posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
         # reconstruction loss
         y_recon = decoder(
-            x=einops.rearrange(posterior_samples[1:], "l b x -> (l b) x"),
-            h=torch.cat(rnn_hiddens[1:], dim=0),
+            x=einops.rearrange(posterior_samples, "l b x -> (l b) x"),
+            h=torch.cat(rnn_hiddens, dim=0),
         )
-        y_true = einops.rearrange(y[1:], "l b y -> (l b) y")
+        y_true = einops.rearrange(y, "l b y -> (l b) y")
         reconstruction_loss = nn.MSELoss()(y_recon, y_true)
         # KL loss
         kl_loss = 0.0
-        for t in range(1, config.chunk_length+1):
+        for t in range(config.chunk_length):
             kl_loss += kl_divergence(posteriors[t], priors[t]).clamp(min=config.free_nats).mean()
         kl_loss = kl_loss / config.chunk_length
 
@@ -137,32 +127,22 @@ def train_backbone(
                 # convert to tensor, transform to device, reshape to time-first
                 y = torch.as_tensor(y, device=device)
                 a = encoder(y)
-                a = torch.cat((
-                    torch.zeros((1, config.batch_size, config.a_dim), device=device),
-                    einops.rearrange(a, "b l a -> l b a")
-                ), dim=0)
-                y = torch.cat((
-                    torch.zeros((1, config.batch_size, test_buffer.y_dim), device=device),
-                    einops.rearrange(y, "b l y -> l b y")
-                ), dim=0)
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
 
-                # Initial RNN hidden
-                rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-                priors, posteriors, rnn_hiddens = rssm(h=rnn_hidden, a=a, u=u)
-                # x0:T
+                priors, posteriors, rnn_hiddens = rssm(a=a, u=u)
+                # x0:T-1
                 posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
                 # reconstruction loss
                 y_recon = decoder(
-                    x=einops.rearrange(posterior_samples[1:], "l b x -> (l b) x"),
-                    h=torch.cat(rnn_hiddens[1:], dim=0)
+                    x=einops.rearrange(posterior_samples, "l b x -> (l b) x"),
+                    h=torch.cat(rnn_hiddens, dim=0)
                 )
-                y_true = einops.rearrange(y[1:], "l b y -> (l b) y")
+                y_true = einops.rearrange(y, "l b y -> (l b) y")
                 reconstruction_loss = nn.MSELoss()(y_recon, y_true)
                 # KL loss
                 kl_loss = 0.0
-                for t in range(1, config.chunk_length+1):
+                for t in range(config.chunk_length):
                     kl_loss += kl_divergence(posteriors[t], priors[t]).clamp(min=config.free_nats).mean()
                 kl_loss = kl_loss / config.chunk_length
 
@@ -188,7 +168,6 @@ def train_cost(
 
     cost_model = CostModel(
         x_dim=rssm.x_dim,
-        u_dim=rssm.u_dim,
         rnn_hidden_dim=rssm.rnn_hidden_dim,
     ).to(device)
 
@@ -223,30 +202,16 @@ def train_cost(
         # convert to tensor, transform to device, reshape to time-first
         y = torch.as_tensor(y, device=device)
         a = encoder(y)
-        a = torch.cat((
-            torch.zeros((1, config.batch_size, rssm.a_dim), device=device),
-            einops.rearrange(a, "b l a -> l b a")
-        ), dim=0)
-        y = torch.cat((
-            torch.zeros((1, config.batch_size, train_buffer.y_dim), device=device),
-            einops.rearrange(y, "b l y -> l b y")
-        ), dim=0)
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
         c = torch.as_tensor(c, device=device)
-        c = torch.cat((
-            torch.zeros((1, config.batch_size, 1), device=device),
-            einops.rearrange(c, "b l c -> l b c")
-        ), dim=0)
-
-        # Initial RNN hidden
-        rnn_hidden = torch.zeros((config.batch_size, rssm.rnn_hidden_dim), device=device)
-        _, posteriors, rnn_hiddens = rssm(h=rnn_hidden, a=a, u=u)
-        # x0:T
+        
+        _, posteriors, rnn_hiddens = rssm(a=a, u=u)
+        # x0:T-1
         posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
         # compute cost loss
         cost_loss = 0.0
-        for t in range(1, config.chunk_length+1):
+        for t in range(config.chunk_length):
             cost_loss += nn.MSELoss()(cost_model(x=posterior_samples[t], h=rnn_hiddens[t]), c[t])
         cost_loss = cost_loss / config.chunk_length
 
@@ -275,30 +240,16 @@ def train_cost(
                 # convert to tensor, transform to device, reshape to time-first
                 y = torch.as_tensor(y, device=device)
                 a = encoder(y)
-                a = torch.cat((
-                    torch.zeros((1, config.batch_size, rssm.a_dim), device=device),
-                    einops.rearrange(a, "b l a -> l b a")
-                ), dim=0)
-                y = torch.cat((
-                    torch.zeros((1, config.batch_size, test_buffer.y_dim), device=device),
-                    einops.rearrange(y, "b l y -> l b y")
-                ), dim=0)
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
                 c = torch.as_tensor(c, device=device)
-                c = torch.cat((
-                    torch.zeros((1, config.batch_size, 1), device=device),
-                    einops.rearrange(c, "b l c -> l b c")
-                ), dim=0)
-
-                # Initial RNN hidden
-                rnn_hidden = torch.zeros((config.batch_size, rssm.rnn_hidden_dim), device=device)
-                _, posteriors, rnn_hiddens = rssm(h=rnn_hidden, a=a, u=u)
-                # x0:T
+                
+                _, posteriors, rnn_hiddens = rssm(a=a, u=u)
+                # x0:T-1
                 posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
                 # compute cost loss
                 cost_loss = 0.0
-                for t in range(1, config.chunk_length+1):
+                for t in range(config.chunk_length):
                     cost_loss += nn.MSELoss()(cost_model(x=posterior_samples[t], h=rnn_hiddens[t]), c[t])
                 cost_loss = cost_loss / config.chunk_length
 
