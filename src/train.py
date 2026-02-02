@@ -189,6 +189,7 @@ def train_cost(
     cost_model = CostModel(
         x_dim=rssm.x_dim,
         u_dim=rssm.u_dim,
+        rnn_hidden_dim=rssm.rnn_hidden_dim,
     ).to(device)
 
     # freeze the encoder and rssm
