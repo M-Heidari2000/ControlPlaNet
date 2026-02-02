@@ -81,6 +81,10 @@ def train_backbone(
             torch.zeros((1, config.batch_size, config.a_dim), device=device),
             einops.rearrange(a, "b l a -> l b a")
         ), dim=0)
+        y = torch.cat((
+            torch.zeros((1, config.batch_size, config.y_dim), device=device),
+            einops.rearrange(y, "b l y -> l b y")
+        ), dim=0)
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
 
@@ -136,6 +140,10 @@ def train_backbone(
                 a = torch.cat((
                     torch.zeros((1, config.batch_size, config.a_dim), device=device),
                     einops.rearrange(a, "b l a -> l b a")
+                ), dim=0)
+                y = torch.cat((
+                    torch.zeros((1, config.batch_size, config.y_dim), device=device),
+                    einops.rearrange(y, "b l y -> l b y")
                 ), dim=0)
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
@@ -218,6 +226,10 @@ def train_cost(
             torch.zeros((1, config.batch_size, config.a_dim), device=device),
             einops.rearrange(a, "b l a -> l b a")
         ), dim=0)
+        y = torch.cat((
+            torch.zeros((1, config.batch_size, config.y_dim), device=device),
+            einops.rearrange(y, "b l y -> l b y")
+        ), dim=0)
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
         c = torch.as_tensor(c, device=device)
@@ -265,6 +277,10 @@ def train_cost(
                 a = torch.cat((
                     torch.zeros((1, config.batch_size, config.a_dim), device=device),
                     einops.rearrange(a, "b l a -> l b a")
+                ), dim=0)
+                y = torch.cat((
+                    torch.zeros((1, config.batch_size, config.y_dim), device=device),
+                    einops.rearrange(y, "b l y -> l b y")
                 ), dim=0)
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
