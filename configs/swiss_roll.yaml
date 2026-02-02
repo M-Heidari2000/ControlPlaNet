@@ -1,7 +1,7 @@
 seed: 0
 log_dir: "./log"
 notes: "swiss_roll"
-run_name: "Nonlinear Control"
+run_name: "PlaNet Control"
 
 data:
   test_ratio: 0.2

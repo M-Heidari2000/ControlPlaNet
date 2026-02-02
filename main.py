@@ -20,7 +20,7 @@ from src.utils import jsonify
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Nonlinear Control")
+    parser = argparse.ArgumentParser(description="PlaNet Control")
     parser.add_argument("--config", type=str, help="path to the config file")
     args = parser.parse_args()
     
