@@ -160,7 +160,7 @@ class RSSM(nn.Module):
                 rnn_hiddens.append(h)
                 samples.append(state)
 
-            samples = torch.stack(state, dim=0)
+            samples = torch.stack(samples, dim=0)
             rnn_hiddens = torch.stack(rnn_hiddens, dim=0)
 
         return samples, rnn_hiddens
