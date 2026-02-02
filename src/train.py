@@ -82,7 +82,7 @@ def train_backbone(
             einops.rearrange(a, "b l a -> l b a")
         ), dim=0)
         y = torch.cat((
-            torch.zeros((1, config.batch_size, config.y_dim), device=device),
+            torch.zeros((1, config.batch_size, train_buffer.y_dim), device=device),
             einops.rearrange(y, "b l y -> l b y")
         ), dim=0)
         u = torch.as_tensor(u, device=device)
@@ -142,7 +142,7 @@ def train_backbone(
                     einops.rearrange(a, "b l a -> l b a")
                 ), dim=0)
                 y = torch.cat((
-                    torch.zeros((1, config.batch_size, config.y_dim), device=device),
+                    torch.zeros((1, config.batch_size, test_buffer.y_dim), device=device),
                     einops.rearrange(y, "b l y -> l b y")
                 ), dim=0)
                 u = torch.as_tensor(u, device=device)
@@ -227,7 +227,7 @@ def train_cost(
             einops.rearrange(a, "b l a -> l b a")
         ), dim=0)
         y = torch.cat((
-            torch.zeros((1, config.batch_size, config.y_dim), device=device),
+            torch.zeros((1, config.batch_size, train_buffer.y_dim), device=device),
             einops.rearrange(y, "b l y -> l b y")
         ), dim=0)
         u = torch.as_tensor(u, device=device)
@@ -279,7 +279,7 @@ def train_cost(
                     einops.rearrange(a, "b l a -> l b a")
                 ), dim=0)
                 y = torch.cat((
-                    torch.zeros((1, config.batch_size, config.y_dim), device=device),
+                    torch.zeros((1, config.batch_size, test_buffer.y_dim), device=device),
                     einops.rearrange(y, "b l y -> l b y")
                 ), dim=0)
                 u = torch.as_tensor(u, device=device)
