@@ -43,7 +43,7 @@ class Decoder(nn.Module):
         )
 
     def forward(self, h: torch.Tensor, x: torch.Tensor):
-        return self.mlp_layers(torch.cat[h, x], dim=1)
+        return self.mlp_layers(torch.cat([h, x], dim=1))
     
 
 class RSSM(nn.Module):
@@ -114,7 +114,7 @@ class RSSM(nn.Module):
                 - prior: p(x_t)
         """
 
-        rnn_input = self.fc_xu(torch.cat([x, u]), dim=1)
+        rnn_input = self.fc_xu(torch.cat([x, u], dim=1))
         h = self.rnn(rnn_input, h)
         prior_input = self.prior_proj(h)
         mean = self.prior_mean(prior_input)
@@ -132,7 +132,7 @@ class RSSM(nn.Module):
             outputs:
                 - posterior: q(x_t)
         """
-        posterior_input = self.posterior_proj(torch.cat[h, a], dim=1)
+        posterior_input = self.posterior_proj(torch.cat([h, a], dim=1))
         mean = self.posterior_mean(posterior_input)
         cov = torch.diag_embed(self.posterior_var(posterior_input) + self.min_var)
         posterior = MultivariateNormal(loc=mean, covariance_matrix=cov)
