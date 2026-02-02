@@ -152,7 +152,7 @@ class RSSM(nn.Module):
             state = x
 
             for l in range(d):
-                h, prior = self.prior(h=h, x=x, u=u[l])
+                h, prior = self.prior(h=h, x=state, u=u[l])
                 state = prior.loc
                 samples.append(state)
 
@@ -200,6 +200,7 @@ class RSSM(nn.Module):
             posteriors.append(posterior)
 
         return priors, posteriors
+
 
 class CostModel(nn.Module):
 
