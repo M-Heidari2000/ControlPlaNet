@@ -224,7 +224,7 @@ def train_cost(
         y = torch.as_tensor(y, device=device)
         a = encoder(y)
         a = torch.cat((
-            torch.zeros((1, config.batch_size, config.a_dim), device=device),
+            torch.zeros((1, config.batch_size, rssm.a_dim), device=device),
             einops.rearrange(a, "b l a -> l b a")
         ), dim=0)
         y = torch.cat((
@@ -276,7 +276,7 @@ def train_cost(
                 y = torch.as_tensor(y, device=device)
                 a = encoder(y)
                 a = torch.cat((
-                    torch.zeros((1, config.batch_size, config.a_dim), device=device),
+                    torch.zeros((1, config.batch_size, rssm.a_dim), device=device),
                     einops.rearrange(a, "b l a -> l b a")
                 ), dim=0)
                 y = torch.cat((
