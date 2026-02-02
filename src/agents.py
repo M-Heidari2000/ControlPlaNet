@@ -52,8 +52,8 @@ class CEMAgent:
         with torch.no_grad():
             self.rnn_hidden, _ = self.rssm.prior(h=self.rnn_hidden, x=self.posterior_mean, u=u)
             posterior = self.rssm.posterior(h=self.rnn_hidden, a=a)
-            x = posterior.loc
-            planned_u = self._plan(x=x)
+            self.posterior_mean = posterior.loc
+            planned_u = self._plan(x=self.posterior_mean)
 
             if explore:
                 planned_u += self.action_noise * torch.randn_like(planned_u)

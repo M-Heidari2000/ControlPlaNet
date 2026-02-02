@@ -201,7 +201,7 @@ class RSSM(nn.Module):
 
         for t in range(T):
             h, prior = self.prior(h=h, x=posterior.rsample(), u=u[t])
-            posterior = self.posterior(h=h, a=a[t])
+            posterior = self.posterior(h=h, a=a[t+1])
             rnn_hiddens.append(h)
             priors.append(prior)
             posteriors.append(posterior)
