@@ -202,6 +202,8 @@ class RSSM(nn.Module):
             rnn_hiddens.append(h)
             priors.append(prior)
             posteriors.append(posterior)
+        
+        rnn_hiddens = torch.stack(rnn_hiddens, dim=0)
 
         return priors, posteriors, rnn_hiddens
 

@@ -35,7 +35,7 @@ def train_backbone(
         x_dim=config.x_dim,
         hidden_dim=config.hidden_dim,
         y_dim=train_buffer.y_dim
-    )
+    ).to(device)
 
     rssm = RSSM(
         x_dim=config.x_dim,
@@ -44,7 +44,7 @@ def train_backbone(
         rnn_hidden_dim=config.rnn_hidden_dim,
         rnn_input_dim=config.rnn_input_dim,
         min_var=config.min_var,
-    )
+    ).to(device)
 
     wandb.watch([encoder, rssm, decoder], log="all", log_freq=10)
 
@@ -86,7 +86,7 @@ def train_backbone(
         # reconstruction loss
         y_recon = decoder(
             x=einops.rearrange(posterior_samples, "l b x -> (l b) x"),
-            h=torch.cat(rnn_hiddens, dim=0),
+            h=einops.rearrange(rnn_hiddens, "l b h -> (l b) h"),
         )
         y_true = einops.rearrange(y, "l b y -> (l b) y")
         reconstruction_loss = nn.MSELoss()(y_recon, y_true)
@@ -137,7 +137,7 @@ def train_backbone(
                 # reconstruction loss
                 y_recon = decoder(
                     x=einops.rearrange(posterior_samples, "l b x -> (l b) x"),
-                    h=torch.cat(rnn_hiddens, dim=0)
+                    h=einops.rearrange(rnn_hiddens, "l b h -> (l b) h"),
                 )
                 y_true = einops.rearrange(y, "l b y -> (l b) y")
                 reconstruction_loss = nn.MSELoss()(y_recon, y_true)
