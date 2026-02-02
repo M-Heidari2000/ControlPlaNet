@@ -187,8 +187,8 @@ def train_cost(
     device = "cuda" if (torch.cuda.is_available() and not config.disable_gpu) else "cpu"
 
     cost_model = CostModel(
-        x_dim=encoder.x_dim,
-        u_dim=encoder.u_dim,
+        x_dim=rssm.x_dim,
+        u_dim=rssm.u_dim,
     ).to(device)
 
     # freeze the encoder and rssm
