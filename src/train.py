@@ -207,6 +207,7 @@ def train_cost(
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
         c = torch.as_tensor(c, device=device)
+        c = einops.rearrange(c, "b l c -> l b c")
         
         _, posteriors, rnn_hiddens = rssm(a=a, u=u)
         # x0:T-1
@@ -246,7 +247,8 @@ def train_cost(
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
                 c = torch.as_tensor(c, device=device)
-                
+                c = einops.rearrange(c, "b l c -> l b c")
+
                 _, posteriors, rnn_hiddens = rssm(a=a, u=u)
                 # x0:T-1
                 posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
