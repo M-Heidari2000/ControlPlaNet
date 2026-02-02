@@ -6,7 +6,6 @@ from tqdm import tqdm
 from omegaconf.dictconfig import DictConfig
 from torch.distributions.kl import kl_divergence
 from .memory import ReplayBuffer
-from .utils import detach_mvn
 from torch.nn.utils import clip_grad_norm_
 from .models import (
     Encoder,
@@ -76,7 +75,8 @@ def train_backbone(
 
         # convert to tensor, transform to device, reshape to time-first
         y = torch.as_tensor(y, device=device)
-        a = encoder(y)
+        a = encoder(einops.rearrange(y, "b l y -> (b l) y"))
+        a = einops.rearrange(a, "(b l) a -> l b a", b=config.batch_size)
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
 
@@ -126,7 +126,8 @@ def train_backbone(
 
                 # convert to tensor, transform to device, reshape to time-first
                 y = torch.as_tensor(y, device=device)
-                a = encoder(y)
+                a = encoder(einops.rearrange(y, "b l y -> (b l) y"))
+                a = einops.rearrange(a, "(b l) a -> l b a", b=config.batch_size)
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
 
