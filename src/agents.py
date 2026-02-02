@@ -74,10 +74,10 @@ class CEMAgent:
             action_candidates = action_dist.sample([self.num_candidates])
             action_candidates = einops.rearrange(action_candidates, "n h u -> h n u")
             action_candidates = action_candidates.clamp(min=-1.0, max=1.0)
-            prior_samples = self.dynamics_model.generate(x=x, u=action_candidates)
+            prior_samples, rnn_hiddens = self.dynamics_model.generate(x=x, u=action_candidates)
             total_predicted_cost = torch.zeros(self.num_candidates, device=self.device)
             for t in range(self.planning_horizon):
-                total_predicted_cost += self.cost_model(x=prior_samples[t]).squeeze()
+                total_predicted_cost += self.cost_model(x=prior_samples[t], h=rnn_hiddens[t]).squeeze()
             # find the elite sequences
             elite_indexes = total_predicted_cost.argsort(descending=False)[:self.num_elites]
             elites = action_candidates[:, elite_indexes, :]

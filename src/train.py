@@ -86,11 +86,14 @@ def train_backbone(
 
         # Initial RNN hidden
         rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-        priors, posteriors = rssm(h=rnn_hidden, a=a, u=u)
+        priors, posteriors, rnn_hiddens = rssm(h=rnn_hidden, a=a, u=u)
         # x0:T
         posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
         # reconstruction loss
-        y_recon = decoder(einops.rearrange(posterior_samples[1:], "l b x -> (l b) x"))
+        y_recon = decoder(
+            x=einops.rearrange(posterior_samples[1:], "l b x -> (l b) x"),
+            h=torch.cat(rnn_hiddens, dim=0),
+        )
         y_true = einops.rearrange(y[1:], "l b y -> (l b) y")
         reconstruction_loss = nn.MSELoss()(y_recon, y_true)
         # KL loss
@@ -139,11 +142,14 @@ def train_backbone(
 
                 # Initial RNN hidden
                 rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-                priors, posteriors = rssm(h=rnn_hidden, a=a, u=u)
+                priors, posteriors, rnn_hiddens = rssm(h=rnn_hidden, a=a, u=u)
                 # x0:T
                 posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
                 # reconstruction loss
-                y_recon = decoder(einops.rearrange(posterior_samples[1:], "l b x -> (l b) x"))
+                y_recon = decoder(
+                    x=einops.rearrange(posterior_samples[1:], "l b x -> (l b) x"),
+                    h=torch.cat(rnn_hiddens, dim=0)
+                )
                 y_true = einops.rearrange(y[1:], "l b y -> (l b) y")
                 reconstruction_loss = nn.MSELoss()(y_recon, y_true)
                 # KL loss
@@ -222,13 +228,13 @@ def train_cost(
 
         # Initial RNN hidden
         rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-        _, posteriors = rssm(h=rnn_hidden, a=a, u=u)
+        _, posteriors, rnn_hiddens = rssm(h=rnn_hidden, a=a, u=u)
         # x0:T
         posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
         # compute cost loss
         cost_loss = 0.0
         for t in range(1, config.chunk_length+1):
-            cost_loss += nn.MSELoss()(cost_model(x=posterior_samples[t]), c[t])
+            cost_loss += nn.MSELoss()(cost_model(x=posterior_samples[t], h=rnn_hiddens[t]), c[t])
         cost_loss = cost_loss / config.chunk_length
 
         optimizer.zero_grad()
@@ -270,13 +276,13 @@ def train_cost(
 
                 # Initial RNN hidden
                 rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-                _, posteriors = rssm(h=rnn_hidden, a=a, u=u)
+                _, posteriors, rnn_hiddens = rssm(h=rnn_hidden, a=a, u=u)
                 # x0:T
                 posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
                 # compute cost loss
                 cost_loss = 0.0
                 for t in range(1, config.chunk_length+1):
-                    cost_loss += nn.MSELoss()(cost_model(x=posterior_samples[t]), c[t])
+                    cost_loss += nn.MSELoss()(cost_model(x=posterior_samples[t], h=rnn_hiddens[t]), c[t])
                 cost_loss = cost_loss / config.chunk_length
 
                 wandb.log({

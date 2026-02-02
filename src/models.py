@@ -146,6 +146,7 @@ class RSSM(nn.Module):
         """
         with torch.no_grad():
             samples = []
+            rnn_hiddens = []
 
             if u.dim() == 2:
                 u = u.unsqueeze(0)
@@ -156,11 +157,13 @@ class RSSM(nn.Module):
             for l in range(d):
                 h, prior = self.prior(h=h, x=state, u=u[l])
                 state = prior.loc
+                rnn_hiddens.append(h)
                 samples.append(state)
 
             samples = torch.stack(state, dim=0)
+            rnn_hiddens = torch.stack(rnn_hiddens, dim=0)
 
-        return samples
+        return samples, rnn_hiddens
     
     def forward(
         self,
@@ -191,6 +194,7 @@ class RSSM(nn.Module):
             loc=torch.zeros((B, self.x_dim), device=device),
             covariance_matrix=torch.eye(self.x_dim, device=device).repeat([B, 1, 1]),
         )
+        rnn_hiddens = [h]
 
         posteriors = [posterior]
         priors = [prior]
@@ -198,10 +202,11 @@ class RSSM(nn.Module):
         for t in range(T):
             h, prior = self.prior(h=h, x=posterior.rsample(), u=u[t])
             posterior = self.posterior(h=h, a=a[t])
+            rnn_hiddens.append(h)
             priors.append(prior)
             posteriors.append(posterior)
 
-        return priors, posteriors
+        return priors, posteriors, rnn_hiddens
 
 
 class CostModel(nn.Module):
@@ -210,15 +215,17 @@ class CostModel(nn.Module):
         self,
         x_dim: int,
         u_dim: int,
+        rnn_hidden_dim: int,
         hidden_dim: Optional[int]=64,
     ):
         super().__init__()
 
         self.x_dim = x_dim
         self.u_dim = u_dim
+        self.rnn_hidden_dim = rnn_hidden_dim
 
         self.mlp_layers = nn.Sequential(
-            nn.Linear(self.x_dim, hidden_dim),
+            nn.Linear(self.rnn_hidden_dim + self.x_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
@@ -226,6 +233,6 @@ class CostModel(nn.Module):
             nn.Softplus(),
         )
 
-    def forward(self, x:torch.Tensor):
-        cost = self.mlp_layers(x)
+    def forward(self, h: torch.Tensor, x:torch.Tensor):
+        cost = self.mlp_layers(torch.cat([x, h], dim=1))
         return cost
