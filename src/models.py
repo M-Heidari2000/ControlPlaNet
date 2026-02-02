@@ -62,6 +62,8 @@ class RSSM(nn.Module):
         min_var: float=1e-2,
     ):
         
+        super().__init__()
+        
         self.x_dim = x_dim
         self.u_dim = u_dim
         self.a_dim = a_dim
@@ -162,7 +164,7 @@ class RSSM(nn.Module):
     
     def forward(
         self,
-        rnn_hidden: torch.Tensor,
+        h: torch.Tensor,
         u: torch.Tensor,
         a: torch.Tensor,
     ):
@@ -170,7 +172,7 @@ class RSSM(nn.Module):
             multi step inference of priors and posteriors
 
             inputs:
-                - rnn_hidden: intial rnn hidden
+                - h: intial rnn hidden
                 - a: a0:T
                 - u: u0:T-1
             outputs:
@@ -194,8 +196,8 @@ class RSSM(nn.Module):
         priors = [prior]
 
         for t in range(T):
-            rnn_hidden, prior = self.prior(h=rnn_hidden, x=posterior.rsample(), u=u[t])
-            posterior = self.posterior(h=rnn_hidden, a=a[t])
+            h, prior = self.prior(h=h, x=posterior.rsample(), u=u[t])
+            posterior = self.posterior(h=h, a=a[t])
             priors.append(prior)
             posteriors.append(posterior)
 

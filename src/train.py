@@ -86,7 +86,7 @@ def train_backbone(
 
         # Initial RNN hidden
         rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-        priors, posteriors = rssm(rnn_hidden=rnn_hidden, a=a, u=u)
+        priors, posteriors = rssm(h=rnn_hidden, a=a, u=u)
         # x0:T
         posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
         # reconstruction loss
@@ -139,7 +139,7 @@ def train_backbone(
 
                 # Initial RNN hidden
                 rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-                priors, posteriors = rssm(rnn_hidden=rnn_hidden, a=a, u=u)
+                priors, posteriors = rssm(h=rnn_hidden, a=a, u=u)
                 # x0:T
                 posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
                 # reconstruction loss
@@ -222,7 +222,7 @@ def train_cost(
 
         # Initial RNN hidden
         rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-        _, posteriors = rssm(rnn_hidden=rnn_hidden, a=a, u=u)
+        _, posteriors = rssm(h=rnn_hidden, a=a, u=u)
         # x0:T
         posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
         # compute cost loss
@@ -270,7 +270,7 @@ def train_cost(
 
                 # Initial RNN hidden
                 rnn_hidden = torch.zeros((config.batch_size, config.rnn_hidden_dim), device=device)
-                _, posteriors = rssm(rnn_hidden=rnn_hidden, a=a, u=u)
+                _, posteriors = rssm(h=rnn_hidden, a=a, u=u)
                 # x0:T
                 posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
                 # compute cost loss
