@@ -81,9 +81,7 @@ def train_backbone(
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
 
-        priors, posteriors, rnn_hiddens = rssm(a=a, u=u)
-        # x0:T-1
-        posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
+        priors, posteriors, rnn_hiddens, posterior_samples = rssm(a=a, u=u) # x0:T-1
         # reconstruction loss
         y_recon = decoder(
             x=einops.rearrange(posterior_samples, "l b x -> (l b) x"),
@@ -133,9 +131,7 @@ def train_backbone(
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
 
-                priors, posteriors, rnn_hiddens = rssm(a=a, u=u)
-                # x0:T-1
-                posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
+                priors, posteriors, rnn_hiddens, posterior_samples = rssm(a=a, u=u) # x0:T-1
                 # reconstruction loss
                 y_recon = decoder(
                     x=einops.rearrange(posterior_samples, "l b x -> (l b) x"),
@@ -212,9 +208,7 @@ def train_cost(
         c = torch.as_tensor(c, device=device)
         c = einops.rearrange(c, "b l c -> l b c")
         
-        _, posteriors, rnn_hiddens = rssm(a=a, u=u)
-        # x0:T-1
-        posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
+        _, _, rnn_hiddens, posterior_samples = rssm(a=a, u=u)  # x0:T-1
         # compute cost loss
         cost_loss = 0.0
         for t in range(config.chunk_length):
@@ -253,9 +247,7 @@ def train_cost(
                 c = torch.as_tensor(c, device=device)
                 c = einops.rearrange(c, "b l c -> l b c")
 
-                _, posteriors, rnn_hiddens = rssm(a=a, u=u)
-                # x0:T-1
-                posterior_samples = torch.stack([p.rsample() for p in posteriors], dim=0)
+                _, _, rnn_hiddens, posterior_samples = rssm(a=a, u=u) # x0:T-1
                 # compute cost loss
                 cost_loss = 0.0
                 for t in range(config.chunk_length):

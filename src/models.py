@@ -178,6 +178,8 @@ class RSSM(nn.Module):
             outputs:
                 priors: one step priors over the states
                 posteriors: posterior over the states
+                rnn_hiddens: rnn hiddens
+                posterior_samples: samples from the posteriors
 
             Notes: u[T-1] is not used
         """
@@ -191,21 +193,26 @@ class RSSM(nn.Module):
             covariance_matrix=torch.eye(self.x_dim, device=device).repeat([B, 1, 1]),
         )
         posterior = self.posterior(h=h, a=a[0]) # posterior over x0
+        x = posterior.rsample()
 
         rnn_hiddens = [h]
         posteriors = [posterior]
         priors = [prior]
+        posterior_samples = [x]
 
         for t in range(T-1):
-            h, prior = self.prior(h=h, x=posterior.rsample(), u=u[t])
+            h, prior = self.prior(h=h, x=x, u=u[t])
             posterior = self.posterior(h=h, a=a[t+1])
+            x = posterior.rsample()
             rnn_hiddens.append(h)
             priors.append(prior)
             posteriors.append(posterior)
+            posterior_samples.append(x)
         
         rnn_hiddens = torch.stack(rnn_hiddens, dim=0)
+        posterior_samples = torch.stack(posterior_samples, dim=0)
 
-        return priors, posteriors, rnn_hiddens
+        return priors, posteriors, rnn_hiddens, posterior_samples
 
 
 class CostModel(nn.Module):
