@@ -16,8 +16,13 @@ class Pendulum:
         g: float=10.0,
         horizon: int=200,
     ):
-        env = gym.make("Pendulum-v1", max_episode_steps=horizon,  render_mode=render_mode, g=g)
-        self.env = RescaleAction(env=env, min_action=-1.0, max_action=1.0)
+        self.env = gym.make("Pendulum-v1", max_episode_steps=horizon,  render_mode=render_mode, g=g)
+        self.action_space = spaces.Box(
+            low=np.array([-1.0]),
+            high=np.array([1.0]),
+            shape=(1, ),
+            dtype=np.float32,
+        )
         self.state_space = spaces.Box(
             low=np.array([-np.pi, 0.0]),
             high=np.array([np.pi, 8.0]),
@@ -28,12 +33,9 @@ class Pendulum:
     @property
     def observation_space(self):
         return self.env.observation_space
-
-    @property
-    def action_space(self):
-        return self.env.action_space
     
     def step(self, action):
+        action = action * 2.0   # since the pendulum original env accepts inputs in range (-2, 2)
         obs, reward, terminated, truncated, info = self.env.step(action)
         info = info | {"state": self.env.state}
         return obs, reward, terminated, truncated, info
