@@ -33,8 +33,8 @@ class Pendulum:
     def action_space(self):
         return self.env.action_space
     
-    def step(self, u):
-        return self.env.step(u)
+    def step(self, action):
+        return self.env.step(action)
     
     def reset(self, *, seed: int | None=None, options: dict | None=None):
         return self.env.reset(seed=seed, options=options)
