@@ -1,7 +1,6 @@
 import numpy as np
-import gymnasium as gym
+from gymnasium.envs.classic_control import pendulum
 from gymnasium import spaces
-from gymnasium.wrappers import RescaleAction
 
 
 class Pendulum:
@@ -16,7 +15,8 @@ class Pendulum:
         g: float=10.0,
         horizon: int=200,
     ):
-        self.env = gym.make("Pendulum-v1", max_episode_steps=horizon,  render_mode=render_mode, g=g)
+        self.env = Pendulum(render_mode=render_mode, g=g)
+        self.horizon = horizon
         self.action_space = spaces.Box(
             low=np.array([-1.0]),
             high=np.array([1.0]),
@@ -37,11 +37,14 @@ class Pendulum:
     def step(self, action):
         action = action * 2.0   # since the pendulum original env accepts inputs in range (-2, 2)
         obs, reward, terminated, truncated, info = self.env.step(action)
+        self._step += 1
+        truncated = truncated or bool(self._step >= self.horizon)
         info = info | {"state": self.env.state}
         return obs, reward, terminated, truncated, info
     
     def reset(self, *, seed: int | None=None, options: dict | None=None):
         obs, info = self.env.reset(seed=seed, options=options)
+        self._step = 0
         info = info | {"state": self.env.state}
         return obs, info
     
