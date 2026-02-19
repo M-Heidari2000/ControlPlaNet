@@ -34,10 +34,14 @@ class Pendulum:
         return self.env.action_space
     
     def step(self, action):
-        return self.env.step(action)
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        info = info | {"state": self.env.state}
+        return obs, reward, terminated, truncated, info
     
     def reset(self, *, seed: int | None=None, options: dict | None=None):
-        return self.env.reset(seed=seed, options=options)
+        obs, info = self.env.reset(seed=seed, options=options)
+        info = info | {"state": self.env.state}
+        return obs, info
     
     def render(self):
         return self.env.render()
