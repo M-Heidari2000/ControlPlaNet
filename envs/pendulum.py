@@ -1,5 +1,5 @@
 import numpy as np
-from gymnasium.envs.classic_control.pendulum import PendulumEnv
+from gymnasium.envs.classic_control.pendulum import PendulumEnv, angle_normalize
 from gymnasium import spaces
 
 
@@ -34,18 +34,24 @@ class Pendulum:
     def observation_space(self):
         return self.env.observation_space
     
+    @property
+    def state(self):
+        theta, thetadot = self.env.state
+        theta = angle_normalize(theta)
+        return np.array([theta, thetadot])
+
     def step(self, action):
         action = action * 2.0   # since the pendulum original env accepts inputs in range (-2, 2)
         obs, reward, terminated, truncated, info = self.env.step(action)
         self._step += 1
         truncated = truncated or bool(self._step >= self.horizon)
-        info = info | {"state": self.env.state}
+        info = info | {"state": self.state}
         return obs, reward, terminated, truncated, info
     
     def reset(self, *, seed: int | None=None, options: dict | None=None):
         obs, info = self.env.reset(seed=seed, options=options)
         self._step = 0
-        info = info | {"state": self.env.state}
+        info = info | {"state": self.state}
         return obs, info
     
     def render(self):
