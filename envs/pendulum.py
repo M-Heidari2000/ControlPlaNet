@@ -1,9 +1,10 @@
 import numpy as np
+import gymnasium as gym
 from gymnasium.envs.classic_control.pendulum import PendulumEnv, angle_normalize
 from gymnasium import spaces
 
 
-class Pendulum:
+class Pendulum(gym.Env):
 
     x_dim = 2
     y_dim = 3
