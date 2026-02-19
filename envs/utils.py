@@ -4,6 +4,7 @@ from tqdm import tqdm
 import gymnasium as gym
 from pathlib import Path
 from typing import Union
+from stable_baselines3 import PPO
 from minari.dataset.minari_storage import MinariStorage
 from minari.data_collector.episode_buffer import EpisodeBuffer
 
@@ -23,8 +24,9 @@ MinariStorage.get_size = patched_get_size
 def collect_data(
     env: gym.Env,
     data_dir: Union[str, Path],
-    num_episodes: int = 100,
-    action_repeat: int = 1,
+    num_episodes: int=100,
+    action_repeat: int=1,
+    ppo_steps: int=0,
 ) -> MinariStorage:
 
     data_dir = Path(data_dir)
@@ -36,6 +38,10 @@ def collect_data(
         env_spec=None,
         data_format="hdf5",
     )
+
+    # train a ppo model
+    model = PPO("MlpPolicy", env, verbose=1)
+    model.learn(total_timesteps=ppo_steps)
 
     # random target but fixed across the episodes
     for _ in tqdm(range(num_episodes)):
@@ -54,12 +60,12 @@ def collect_data(
 
         done = False
         action_counter = 0
-        action = env.action_space.sample()
+        action, _ = model.predict(observation=obs)
 
         while not done:
             
             if action_counter >= action_repeat:
-                action = env.action_space.sample()
+                action, _ = model.predict(observation=obs)
                 action_counter = 0
             
             next_obs, reward, terminated, truncated, next_info = env.step(action=action)

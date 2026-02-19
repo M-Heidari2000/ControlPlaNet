@@ -7,6 +7,7 @@ data:
   test_ratio: 0.2
   num_episodes: 10000
   action_repeat: 1
+  ppo_steps: 100000
 
 env:
   name: pendulum
