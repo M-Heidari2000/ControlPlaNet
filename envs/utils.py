@@ -49,7 +49,7 @@ def collect_data(
             rewards=[],
             terminations=[],
             truncations=[],
-            infos={"state": [], "target": []},
+            infos={"state": []},
         )
 
         done = False
@@ -67,8 +67,6 @@ def collect_data(
             episode.observations.append(np.array(obs, copy=True))
             if "state" in info:
                 episode.infos["state"].append(np.array(info["state"], copy=True))
-            if "target" in info:
-                episode.infos["target"].append(np.array(info["target"], copy=True))
             episode.actions.append(np.array(action, copy=True))
             episode.rewards.append(float(reward))
             episode.terminations.append(bool(terminated))
