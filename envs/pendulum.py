@@ -1,5 +1,5 @@
 import numpy as np
-from gymnasium.envs.classic_control import pendulum
+from gymnasium.envs.classic_control.pendulum import PendulumEnv
 from gymnasium import spaces
 
 
@@ -15,7 +15,7 @@ class Pendulum:
         g: float=10.0,
         horizon: int=200,
     ):
-        self.env = Pendulum(render_mode=render_mode, g=g)
+        self.env = PendulumEnv(render_mode=render_mode, g=g)
         self.horizon = horizon
         self.action_space = spaces.Box(
             low=np.array([-1.0]),
