@@ -32,12 +32,16 @@ def pearson_corr(
     return corr.mean()
 
 
+from typing import Dict, List, Union
+import numpy as np
+
 def make_grid(
     low: np.ndarray,
     high: np.ndarray,
     num_regions: Union[int, np.ndarray],
     num_points: int,
     rng: np.random.Generator | None = None,
+    deterministic: bool = False,
 ) -> List[Dict[str, np.ndarray]]:
 
     low = np.asarray(low, dtype=float)
@@ -52,7 +56,7 @@ def make_grid(
         num_regions = np.full(d, int(num_regions), dtype=int)
     else:
         num_regions = np.asarray(num_regions, dtype=int)
-        assert num_regions.shape == (d, )
+        assert num_regions.shape == (d,)
 
     widths = (high - low) / num_regions
 
@@ -64,11 +68,15 @@ def make_grid(
         cell_low = low + cell_index * widths
         cell_high = cell_low + widths
 
-        samples = rng.uniform(
-            low=cell_low,
-            high=cell_high,
-            size=(num_points, d),
-        ).astype(np.float32)
+        if deterministic:
+            center = (cell_low + cell_high) / 2.0
+            samples = center.reshape(1, d).astype(np.float32)
+        else:
+            samples = rng.uniform(
+                low=cell_low,
+                high=cell_high,
+                size=(num_points, d),
+            ).astype(np.float32)
 
         regions.append(
             {
