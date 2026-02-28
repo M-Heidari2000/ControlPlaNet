@@ -1,7 +1,9 @@
 import torch
 import einops
 import numpy as np
+from mpc import mpc
 from typing import Optional
+from mpc.mpc import QuadCost, LinDx
 from torch.distributions import MultivariateNormal
 from .models import Encoder, RSSM, CostModel
 
@@ -95,3 +97,56 @@ class CEMAgent:
         # Initialize rnn_hidden with zeros
         self.rnn_hidden = torch.zeros((1, self.rssm.rnn_hidden_dim), device=self.device)
         self.posterior_mean = torch.zeros((1, self.rssm.x_dim), device=self.device)
+
+
+class OracleMPC:
+    """
+        action planning by MPC method using the actual states
+        c = 0.5 * (x-q).T @ Q @ (x-q) + 0.5 * u.T @ R @ u
+    """
+
+    def __init__(
+        self,
+        Q: torch.Tensor,
+        R: torch.Tensor,
+        q: torch.Tensor,
+        A: torch.Tensor,
+        B: torch.Tensor,
+        planning_horizon: int=10
+    ):
+        
+        x_dim = Q.shape[0]
+        u_dim = R.shape[0]
+        self.device = A.device
+
+        C = torch.block_diag(Q, R).expand(planning_horizon, 1, -1, -1)
+        c = torch.cat([
+            -q @ Q,
+            torch.zeros((1, u_dim), device=self.device)
+        ], dim=1).expand(planning_horizon, -1, -1)
+        
+        F = torch.cat((A, B), dim=1).expand(planning_horizon, 1, -1, -1)
+        f = torch.zeros((1, x_dim), device=self.device).expand(planning_horizon, -1, -1)
+        
+        self.quadcost = QuadCost(C, c)
+        self.lindx = LinDx(F, f)
+        
+        self.planner = mpc.MPC(
+            n_batch=1,
+            n_state=x_dim,
+            n_ctrl=u_dim,
+            T=planning_horizon,
+            u_lower=-1.0,
+            u_upper=1.0,
+            lqr_iter=50,
+            backprop=False,
+            exit_unconverged=False,
+        )
+
+    def __call__(self, x: torch.Tensor):
+        _, planned_u, _ = self.planner(
+            x,
+            self.quadcost,
+            self.lindx
+        )        
+        return np.clip(planned_u.squeeze(1).cpu().numpy(), a_min=-1.0, a_max=1.0)
