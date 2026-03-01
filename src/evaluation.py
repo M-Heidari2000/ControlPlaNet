@@ -97,8 +97,17 @@ def evaluate(
                 num_elites=eval_config.num_elites,
             )
 
+            # create oracle
+            device = next(cost_model.parameters()).device
+            Q = torch.eye(env.state_space.shape[0], device=device)
+            R = torch.eye(env.action_space.shape[0], device=device) * 1e-6
+            q = torch.as_tensor(sample, device=device).reshape(1, -1)
+            A = torch.as_tensor(env.A, device=device)
+            B = torch.as_tensor(env.B, device=device)
+            oracle = OracleMPC(Q=Q, R=R, q=q, A=A, B=B)
+
             # get a trial
-            trial_cost = trial(env=env, agent=agent, target=sample)
+            trial_cost = trial(env=env, agent=agent, oracle=oracle, target=sample)
             costs.append(trial_cost)
         
         region["costs"] = np.array(costs)
