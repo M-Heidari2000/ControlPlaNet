@@ -42,7 +42,7 @@ def collect_data(
     for ppo_steps in ppo_steps_list:
 
         # train a ppo model for the specified timesteps
-        model = PPO("MlpPolicy", env=env)
+        model = PPO("MlpPolicy", env=env, device="cpu")
         model.learn(total_timesteps=ppo_steps)
 
         # collect data using the trained ppo model
