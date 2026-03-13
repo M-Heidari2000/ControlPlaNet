@@ -1,11 +1,15 @@
 import torch
 import wandb
 import einops
+import numpy as np
 import torch.nn as nn
+import gymnasium as gym
 from tqdm import tqdm
 from omegaconf.dictconfig import DictConfig
 from torch.distributions.kl import kl_divergence
 from .memory import ReplayBuffer
+from .agents import CEMAgent
+from .evaluation import trial
 from torch.nn.utils import clip_grad_norm_
 from .models import (
     Encoder,
@@ -19,31 +23,32 @@ def train_backbone(
     config: DictConfig,
     train_buffer: ReplayBuffer,
     test_buffer: ReplayBuffer,
+    env: gym.Env,
 ):
 
     # define models and optimizer
-    device = "cuda" if (torch.cuda.is_available() and not config.disable_gpu) else "cpu"
+    device = "cuda" if (torch.cuda.is_available() and not config.backbone.disable_gpu) else "cpu"
 
     encoder = Encoder(
         y_dim=train_buffer.y_dim,
-        hidden_dim=config.hidden_dim,
-        a_dim=config.a_dim
+        hidden_dim=config.backbone.hidden_dim,
+        a_dim=config.backbone.a_dim
     ).to(device)
 
     decoder = Decoder(
-        rnn_hidden_dim=config.rnn_hidden_dim,
-        x_dim=config.x_dim,
-        hidden_dim=config.hidden_dim,
+        rnn_hidden_dim=config.backbone.rnn_hidden_dim,
+        x_dim=config.backbone.x_dim,
+        hidden_dim=config.backbone.hidden_dim,
         y_dim=train_buffer.y_dim
     ).to(device)
 
     rssm = RSSM(
-        x_dim=config.x_dim,
+        x_dim=config.backbone.x_dim,
         u_dim=train_buffer.u_dim,
-        a_dim=config.a_dim,
-        rnn_hidden_dim=config.rnn_hidden_dim,
-        rnn_input_dim=config.rnn_input_dim,
-        min_var=config.min_var,
+        a_dim=config.backbone.a_dim,
+        rnn_hidden_dim=config.backbone.rnn_hidden_dim,
+        rnn_input_dim=config.backbone.rnn_input_dim,
+        min_var=config.backbone.min_var,
     ).to(device)
 
     wandb.watch([encoder, rssm, decoder], log="all", log_freq=10)
@@ -54,14 +59,14 @@ def train_backbone(
         list(rssm.parameters())
     )
 
-    optimizer = torch.optim.Adam(all_params, lr=config.lr, eps=config.eps, weight_decay=config.weight_decay)
+    optimizer = torch.optim.Adam(all_params, lr=config.backbone.lr, eps=config.backbone.eps, weight_decay=config.backbone.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer=optimizer,
-        T_max=config.num_updates
+        T_max=config.backbone.num_updates
     )
 
     # train and test loop
-    for update in tqdm(range(config.num_updates)):
+    for update in tqdm(range(config.backbone.num_updates)):
         
         # train
         encoder.train()
@@ -69,15 +74,15 @@ def train_backbone(
         rssm.train()
 
         y, u, _, _ = train_buffer.sample(
-            batch_size=config.batch_size,
-            chunk_length=config.chunk_length,
+            batch_size=config.backbone.batch_size,
+            chunk_length=config.backbone.chunk_length,
         )
 
         # convert to tensor, transform to device, reshape to time-first
         y = torch.as_tensor(y, device=device)
         y = einops.rearrange(y, "b l y -> l b y")
         a = encoder(einops.rearrange(y, "l b y -> (l b) y"))
-        a = einops.rearrange(a, "(l b) a -> l b a", b=config.batch_size)
+        a = einops.rearrange(a, "(l b) a -> l b a", b=config.backbone.batch_size)
         u = torch.as_tensor(u, device=device)
         u = einops.rearrange(u, "b l u -> l b u")
 
@@ -91,16 +96,16 @@ def train_backbone(
         reconstruction_loss = nn.MSELoss()(y_recon, y_true)
         # KL loss
         kl_loss = 0.0
-        for t in range(config.chunk_length):
-            kl_loss += kl_divergence(posteriors[t], priors[t]).clamp(min=config.free_nats).mean()
-        kl_loss = kl_loss / config.chunk_length
+        for t in range(config.backbone.chunk_length):
+            kl_loss += kl_divergence(posteriors[t], priors[t]).clamp(min=config.backbone.free_nats).mean()
+        kl_loss = kl_loss / config.backbone.chunk_length
 
-        total_loss = reconstruction_loss + config.kl_beta * kl_loss
+        total_loss = reconstruction_loss + config.backbone.kl_beta * kl_loss
 
         optimizer.zero_grad()
         total_loss.backward()
 
-        clip_grad_norm_(all_params, config.clip_grad_norm)
+        clip_grad_norm_(all_params, config.backbone.clip_grad_norm)
         optimizer.step()
         scheduler.step()
 
@@ -110,7 +115,7 @@ def train_backbone(
             "global_step": update,
         })
             
-        if update % config.test_interval == 0:
+        if update % config.backbone.test_interval == 0:
             # test
             with torch.no_grad():              
                 # train
@@ -119,15 +124,15 @@ def train_backbone(
                 rssm.eval()
 
                 y, u, _, _ = test_buffer.sample(
-                    batch_size=config.batch_size,
-                    chunk_length=config.chunk_length,
+                    batch_size=config.backbone.batch_size,
+                    chunk_length=config.backbone.chunk_length,
                 )
 
                 # convert to tensor, transform to device, reshape to time-first
                 y = torch.as_tensor(y, device=device)
                 y = einops.rearrange(y, "b l y -> l b y")
                 a = encoder(einops.rearrange(y, "l b y -> (l b) y"))
-                a = einops.rearrange(a, "(l b) a -> l b a", b=config.batch_size)
+                a = einops.rearrange(a, "(l b) a -> l b a", b=config.backbone.batch_size)
                 u = torch.as_tensor(u, device=device)
                 u = einops.rearrange(u, "b l u -> l b u")
 
@@ -141,17 +146,45 @@ def train_backbone(
                 reconstruction_loss = nn.MSELoss()(y_recon, y_true)
                 # KL loss
                 kl_loss = 0.0
-                for t in range(config.chunk_length):
-                    kl_loss += kl_divergence(posteriors[t], priors[t]).clamp(min=config.free_nats).mean()
-                kl_loss = kl_loss / config.chunk_length
+                for t in range(config.backbone.chunk_length):
+                    kl_loss += kl_divergence(posteriors[t], priors[t]).clamp(min=config.backbone.free_nats).mean()
+                kl_loss = kl_loss / config.backbone.chunk_length
 
-                total_loss = reconstruction_loss + config.kl_beta * kl_loss
+                total_loss = reconstruction_loss + config.backbone.kl_beta * kl_loss
 
                 wandb.log({
                     "test/y reconstruction loss": reconstruction_loss.item(),
                     "test/kl loss": kl_loss.item(),
                     "global_step": update,
                 })
+
+            # test control performance
+            cost_model = train_cost(
+                config=config.cost,
+                encoder=encoder,
+                rssm=rssm,
+                train_buffer=train_buffer,
+                test_buffer=test_buffer,
+            )
+            # create agent
+            agent = CEMAgent(
+                encoder=encoder,
+                rssm=rssm,
+                cost_model=cost_model,
+                planning_horizon=config.evaluation.planning_horizon,
+                num_iterations=config.evaluation.num_iterations,
+                num_candidates=config.evaluation.num_candidates,
+                num_elites=config.evaluation.num_elites,
+            )
+            costs = []
+            for _ in range(config.evaluation.num_trials):
+                costs.append(trial(env=env, agent=agent))
+            
+            wandb.log({
+                "test/mean cost": np.mean(costs).item(),
+                "test/std cost": np.std(costs).item(),
+                "global_step": update,
+            })
                 
     return encoder, decoder, rssm
 

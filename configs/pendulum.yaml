@@ -1,6 +1,6 @@
 seed: 0
 log_dir: "./log"
-notes: "torus"
+notes: "pendulum"
 run_name: "PlaNet Control"
 
 data:
@@ -9,30 +9,16 @@ data:
   action_repeat: 2
 
 env:
-  name: torus
-  horizon: 100
-  periodic: False
-
-  A:
-    - [1.0, 0.0]
-    - [0.0, 1.0]
-  B:
-    - [0.1, 0.0]
-    - [0.0, 0.1]
-  Ns:
-    - [0.0001, 0.0]
-    - [0.0, 0.0001]
-  "No":
-    - [0.0001, 0.0, 0.0]
-    - [0.0, 0.0001, 0.0]
-    - [0.0, 0.0, 0.0001]
+  name: pendulum
+  horizon: 200
+  gravity: 10
 
 train:
   backbone:
     num_updates: 2000
-    test_interval: 10
-    x_dim: 2
-    a_dim: 2
+    test_interval: 100
+    x_dim: 3
+    a_dim: 3
     hidden_dim: 128
     rnn_hidden_dim: 64
     rnn_input_dim: 64
@@ -56,12 +42,9 @@ train:
     weight_decay: 1e-6
     clip_grad_norm: 1.0
     disable_gpu: True
-
-evaluation:
-  num_points: 1
-  num_regions: 1
-  deterministic: True
-  planning_horizon: 8
-  num_iterations: 10
-  num_candidates: 1000
-  num_elites: 100
+  evaluation:
+    num_trials: 5 
+    planning_horizon: 8
+    num_iterations: 10
+    num_candidates: 1000
+    num_elites: 100
