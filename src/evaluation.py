@@ -1,11 +1,6 @@
-import torch
 import numpy as np
 import gymnasium as gym
 from .agents import CEMAgent
-from omegaconf.dictconfig import DictConfig
-from .models import RSSM, Encoder
-from .memory import ReplayBuffer
-from .train import train_cost
 
 
 def trial(
