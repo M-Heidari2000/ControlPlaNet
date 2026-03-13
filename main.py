@@ -53,7 +53,7 @@ if __name__ == "__main__":
         env=env,
         data_dir=save_dir / "data",
         num_episodes=config.data.num_episodes,
-        action_repeat=config.data.action_repeat,
+        ppo_steps_list=config.data.ppo_steps_list,
     )
     
     # create replay buffers
