@@ -15,8 +15,6 @@ from minari import MinariDataset
 from src.memory import ReplayBuffer
 from envs.utils import collect_data
 from src.train import train_backbone
-from src.evaluation import evaluate
-from src.utils import jsonify
 
 
 if __name__ == "__main__":
@@ -76,23 +74,6 @@ if __name__ == "__main__":
     torch.save(encoder.state_dict(), save_dir / "encoder.pth")
     torch.save(decoder.state_dict(), save_dir / "decoder.pth")
     torch.save(rssm.state_dict(), save_dir / "rssm.pth")
-    
-
-    # test the model
-    eval_results = evaluate(
-        eval_config=config.evaluation,
-        cost_train_config=config.train.cost,
-        env=env,
-        rssm=rssm,
-        encoder=encoder,
-        train_buffer=train_buffer,
-        test_buffer=test_buffer
-    )
-
-    eval_results = [jsonify(er) for er in eval_results]
-    with open(save_dir / "eval_results.json", "w") as f:
-        json.dump(eval_results, f, indent=2)
-    wandb.save(save_dir / "eval_results.json")
     
     wandb.finish()
     
