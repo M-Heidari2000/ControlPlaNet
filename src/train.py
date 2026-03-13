@@ -93,7 +93,7 @@ def train_backbone(
             h=einops.rearrange(rnn_hiddens, "l b h -> (l b) h"),
         )
         y_true = einops.rearrange(y, "l b y -> (l b) y")
-        reconstruction_loss = nn.MSELoss()(y_recon, y_true)
+        reconstruction_loss = ((y_recon - y_true) ** 2).sum(dim=-1).mean()
         # KL loss
         kl_loss = 0.0
         for t in range(config.backbone.chunk_length):
@@ -143,7 +143,7 @@ def train_backbone(
                     h=einops.rearrange(rnn_hiddens, "l b h -> (l b) h"),
                 )
                 y_true = einops.rearrange(y, "l b y -> (l b) y")
-                reconstruction_loss = nn.MSELoss()(y_recon, y_true)
+                reconstruction_loss = ((y_recon - y_true) ** 2).sum(dim=-1).mean()
                 # KL loss
                 kl_loss = 0.0
                 for t in range(config.backbone.chunk_length):
@@ -245,7 +245,7 @@ def train_cost(
         # compute cost loss
         cost_loss = 0.0
         for t in range(config.chunk_length):
-            cost_loss += nn.MSELoss()(cost_model(x=posterior_samples[t], h=rnn_hiddens[t]), c[t])
+            cost_loss += ((cost_model(x=posterior_samples[t], h=rnn_hiddens[t]) - c[t]) ** 2).sum(dim=-1).mean()
         cost_loss = cost_loss / config.chunk_length
 
         optimizer.zero_grad()
@@ -284,7 +284,7 @@ def train_cost(
                 # compute cost loss
                 cost_loss = 0.0
                 for t in range(config.chunk_length):
-                    cost_loss += nn.MSELoss()(cost_model(x=posterior_samples[t], h=rnn_hiddens[t]), c[t])
+                    cost_loss += ((cost_model(x=posterior_samples[t], h=rnn_hiddens[t]) - c[t]) ** 2).sum(dim=-1).mean()
                 cost_loss = cost_loss / config.chunk_length
 
                 wandb.log({

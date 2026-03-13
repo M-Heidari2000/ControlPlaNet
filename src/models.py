@@ -224,7 +224,7 @@ class CostModel(nn.Module):
         hidden_dim: Optional[int]=64,
     ):
         """
-            [h_t, x_t] -> c_t
+            [x_t, h_t] -> c_t
         """
 
         super().__init__()

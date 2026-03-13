@@ -15,10 +15,10 @@ env:
 
 train:
   backbone:
-    num_updates: 5000
+    num_updates: 2000
     test_interval: 1000
-    x_dim: 6
-    a_dim: 6
+    x_dim: 3
+    a_dim: 3
     hidden_dim: 128
     rnn_hidden_dim: 64
     rnn_input_dim: 64
@@ -43,7 +43,7 @@ train:
     clip_grad_norm: 1.0
     disable_gpu: True
   evaluation:
-    num_trials: 10
+    num_trials: 1
     planning_horizon: 8
     num_iterations: 10
     num_candidates: 1000
