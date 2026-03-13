@@ -70,6 +70,7 @@ if __name__ == "__main__":
         config=config.train.backbone,
         train_buffer=train_buffer,
         test_buffer=test_buffer,
+        env=env,
     )
     torch.save(encoder.state_dict(), save_dir / "encoder.pth")
     torch.save(decoder.state_dict(), save_dir / "decoder.pth")
