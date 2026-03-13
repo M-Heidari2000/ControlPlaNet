@@ -6,7 +6,6 @@ run_name: "PlaNet Control"
 data:
   test_ratio: 0.2
   num_episodes: 1000
-  action_repeat: 2
   ppo_steps_list: [0, 100000, 200000]
 
 env:
@@ -44,7 +43,7 @@ train:
     clip_grad_norm: 1.0
     disable_gpu: True
   evaluation:
-    num_trials: 5 
+    num_trials: 10
     planning_horizon: 8
     num_iterations: 10
     num_candidates: 1000
