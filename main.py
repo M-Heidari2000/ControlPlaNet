@@ -67,7 +67,7 @@ if __name__ == "__main__":
     # train and save the backbone
     logging.info("training backbone ...")
     encoder, decoder, rssm = train_backbone(
-        config=config.train.backbone,
+        config=config.train,
         train_buffer=train_buffer,
         test_buffer=test_buffer,
         env=env,
