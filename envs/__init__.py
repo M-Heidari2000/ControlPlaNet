@@ -10,6 +10,7 @@ def make(config: DictConfig):
                 render_mode="rgb_array",
                 horizon=config.horizon,
                 g=config.gravity,
+                action_repeat=config.action_repeat,
             )
         case _:
             raise ValueError(f"env {config.name} not found!")

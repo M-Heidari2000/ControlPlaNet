@@ -203,10 +203,13 @@ def train_cost(
         rnn_hidden_dim=rssm.rnn_hidden_dim,
     ).to(device)
 
+    # save requires_grad state so we can restore it after cost training
+    encoder_grad_state = {p: p.requires_grad for p in encoder.parameters()}
+    rssm_grad_state    = {p: p.requires_grad for p in rssm.parameters()}
+
     # freeze the encoder and rssm
     for p in encoder.parameters():
         p.requires_grad = False
-    
     for p in rssm.parameters():
         p.requires_grad = False
 
@@ -291,5 +294,11 @@ def train_cost(
                     "test/cost loss": cost_loss.item(),
                     "global_step": update,
                 })
-                
+
+    # restore requires_grad so backbone training can continue
+    for p, state in encoder_grad_state.items():
+        p.requires_grad = state
+    for p, state in rssm_grad_state.items():
+        p.requires_grad = state
+
     return cost_model
