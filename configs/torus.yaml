@@ -7,6 +7,9 @@ data:
   test_ratio: 0.2
   num_episodes: 1000
   action_repeat: 2
+  dist: normal  # env, normal, uniform
+  u_std: 0.3   # std for normal dist
+  u_max: 0.3   # range for uniform dist
 
 env:
   name: torus
