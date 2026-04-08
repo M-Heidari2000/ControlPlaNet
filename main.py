@@ -4,6 +4,7 @@ import json
 import wandb
 import torch
 import minari
+import joblib
 import logging
 import argparse
 import numpy as np
@@ -11,6 +12,7 @@ from pathlib import Path
 from datetime import datetime
 from omegaconf import OmegaConf
 from minari import MinariDataset
+from sklearn.preprocessing import StandardScaler
 from src.memory import ReplayBuffer
 from envs.utils import collect_data
 from src.train import train_backbone
@@ -68,6 +70,13 @@ if __name__ == "__main__":
     train_buffer = ReplayBuffer.load_from_minari(dataset=train_data)
     test_buffer = ReplayBuffer.load_from_minari(dataset=test_data)
 
+    # fit scaler on training observations and normalize both buffers
+    scaler = StandardScaler()
+    scaler.fit(train_buffer.ys[:len(train_buffer)])
+    train_buffer.ys[:len(train_buffer)] = scaler.transform(train_buffer.ys[:len(train_buffer)]).astype(np.float32)
+    test_buffer.ys[:len(test_buffer)] = scaler.transform(test_buffer.ys[:len(test_buffer)]).astype(np.float32)
+    joblib.dump(scaler, save_dir / "scaler.joblib")
+
     # train and save the backbone
     logging.info("training backbone ...")
     encoder, decoder, rssm = train_backbone(
@@ -88,7 +97,8 @@ if __name__ == "__main__":
         rssm=rssm,
         encoder=encoder,
         train_buffer=train_buffer,
-        test_buffer=test_buffer
+        test_buffer=test_buffer,
+        scaler=scaler,
     )
 
     eval_results = [jsonify(er) for er in eval_results]

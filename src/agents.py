@@ -3,6 +3,7 @@ import einops
 import numpy as np
 from mpc import mpc
 from typing import Optional
+from sklearn.preprocessing import StandardScaler
 from mpc.mpc import QuadCost, LinDx
 from torch.distributions import MultivariateNormal
 from .models import Encoder, RSSM, CostModel
@@ -18,6 +19,7 @@ class CEMAgent:
         rssm: RSSM,
         cost_model: CostModel,
         planning_horizon: int,
+        scaler: StandardScaler,
         num_iterations: int = 10,
         num_candidates: int = 100,
         num_elites: int = 10,
@@ -30,6 +32,7 @@ class CEMAgent:
         self.num_candidates = num_candidates
         self.num_elites = num_elites
         self.planning_horizon = planning_horizon
+        self.scaler = scaler
         self.action_noise = action_noise
 
         self.device = next(encoder.parameters()).device
@@ -47,7 +50,8 @@ class CEMAgent:
         notes: if u_{t-1} is Nonem then that's the first observation
         """
 
-        with torch.no_grad():    
+        with torch.no_grad():
+            y = self.scaler.transform(np.asarray(y, dtype=np.float32).reshape(1, -1)).flatten()
             y = torch.as_tensor(y, device=self.device).unsqueeze(0)
             a = self.encoder(y)
             if u is not None:

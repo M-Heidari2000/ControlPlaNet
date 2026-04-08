@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import gymnasium as gym
+from sklearn.preprocessing import StandardScaler
 from .agents import CEMAgent, OracleMPC
 from omegaconf.dictconfig import DictConfig
 from .models import RSSM, Encoder
@@ -64,6 +65,7 @@ def evaluate(
     encoder: Encoder,
     train_buffer: ReplayBuffer,
     test_buffer: ReplayBuffer,
+    scaler: StandardScaler,
 ):
     target_regions = make_grid(
         low=env.state_space.low,
@@ -92,6 +94,7 @@ def evaluate(
                 rssm=rssm,
                 cost_model=cost_model,
                 planning_horizon=eval_config.planning_horizon,
+                scaler=scaler,
                 num_iterations=eval_config.num_iterations,
                 num_candidates=eval_config.num_candidates,
                 num_elites=eval_config.num_elites,
